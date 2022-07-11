@@ -13,6 +13,14 @@ class ViewController: UITableViewController, UIImagePickerControllerDelegate, UI
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPhoto))
+        
+        let defaults = UserDefaults.standard
+        if let savedPhotos = defaults.object(forKey: "photos") as? Data {
+            if let decodedPhotos = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(savedPhotos) as? [Photo] {
+                photos = decodedPhotos
+
+            }
+        }
        
     }
     
@@ -37,6 +45,14 @@ class ViewController: UITableViewController, UIImagePickerControllerDelegate, UI
 
             navigationController?.pushViewController(vc, animated: true)
         }
+    }
+    
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let delete = UIContextualAction(style: .destructive, title: "Delete") { _,_,_  in
+            self.photos.remove(at: indexPath.row)
+            self.tableView.reloadData()
+        }
+        return UISwipeActionsConfiguration(actions: [delete])
     }
     
     @objc func addPhoto() {
@@ -69,27 +85,27 @@ class ViewController: UITableViewController, UIImagePickerControllerDelegate, UI
             if let name = ac.textFields?[0].text {
                 let photo = Photo(name: imageName, caption: name)
                 self.photos.append(photo)
-                self.tableView.reloadData()
             } else {
                 let photo = Photo(name: imageName, caption: "Unknown")
                 self.photos.append(photo)
-                self.tableView.reloadData()
             }
+            self.tableView.reloadData()
+            self.save()
         })
         
         present(ac, animated: true)
-        
-
-        
-
-
-
-
     }
 
     func getDocumentsDirectory() -> URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0]
+    }
+    
+    func save() {
+        if let savedDate = try? NSKeyedArchiver.archivedData(withRootObject: photos, requiringSecureCoding: false) {
+            let defaults = UserDefaults.standard
+            defaults.set(savedDate, forKey: "photos")
+        }
     }
     
 }
